@@ -5,39 +5,20 @@ package me.mutai.codegraph.antlr.biz;
 
 import me.mutai.codegraph.antlr.Java8Parser;
 import me.mutai.codegraph.antlr.Java8ParserBaseListener;
+import me.mutai.codegraph.model.CodeBlockNode;
+import me.mutai.codegraph.model.CodeNode;
+import me.mutai.codegraph.model.IfCodeBlock;
+import me.mutai.codegraph.util.LocalCache;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author daixiao
  * @version v 0.1 2022/4/16
  */
 public class SimpleClassListener extends Java8ParserBaseListener {
-
-    /**
-     * {
-     * "methodName": {
-     * "timestamp": [
-     * {
-     * "identifier": {
-     * "condition": "",
-     * "content": {}
-     * }
-     * },{
-     * "identifier": {
-     * "condition": "",
-     * "content": {}
-     * }
-     * }
-     * ]
-     * }
-     * }
-     */
-    private Map<String, Map<Long, List<Map<String, BranchCode>>>> result = new HashMap<>();
 
     /**
      * 记录当前词法分析的方法名
@@ -60,6 +41,11 @@ public class SimpleClassListener extends Java8ParserBaseListener {
     private volatile boolean hasPreElse = false;
 
 
+    private List<CodeBlockNode> codeBlockNodes = new ArrayList<>();
+    private CodeBlockNode currentCodeNode;
+    private volatile String currentClazz;
+
+
     @Override
     public void enterMethodDeclaration(Java8Parser.MethodDeclarationContext ctx) {
 
@@ -79,9 +65,18 @@ public class SimpleClassListener extends Java8ParserBaseListener {
 
         TerminalNode node = ctx.Identifier();
         currentMethod = node.getText();
-
-        result.computeIfAbsent(currentMethod, k -> new HashMap<>());
         System.out.println("[enter]进入方法定义");
+
+
+        String cacheKey = StringUtils.join(Arrays.asList(currentClazz, currentMethod), "#");
+        currentCodeNode = (CodeBlockNode) LocalCache.computeIfAbsent(cacheKey, t -> {
+            CodeBlockNode blockNode = new CodeBlockNode();
+            blockNode.setMethod(currentMethod);
+            blockNode.setClazz(currentClazz);
+            return blockNode;
+        });
+
+        codeBlockNodes.add(currentCodeNode);
     }
 
     @Override
@@ -144,18 +139,9 @@ public class SimpleClassListener extends Java8ParserBaseListener {
         System.out.println("返回值" + expression.getText());
     }
 
-    public Map<String, Map<Long, List<Map<String, BranchCode>>>> getResult() {
-        return result;
-    }
-
-    public void setResult(Map<String, Map<Long, List<Map<String, BranchCode>>>> result) {
-        this.result = result;
-    }
-
     private void dealIfStatement(String condition, String content) {
         if (firstEnterIfTag) {
             timestamp = System.currentTimeMillis();
-            firstEnterIfTag = false;
         }
 
         String identifier = "if";
@@ -172,41 +158,30 @@ public class SimpleClassListener extends Java8ParserBaseListener {
     }
 
     private void buildBranch(String identifier, String condition, String content) {
-        Map<String, BranchCode> statement = new HashMap<>();
-        BranchCode branchCode = new BranchCode();
-        branchCode.setCondition(condition);
-        branchCode.setContent(content);
-
-        statement.put(identifier, branchCode);
-        List<Map<String, BranchCode>> maps = result
-                .get(currentMethod)
-                .computeIfAbsent(timestamp, k -> new ArrayList<>());
-        maps.add(statement);
-    }
-
-
-    class BranchCode {
-
-        private String condition;
-
-        private String content;
+        String cacheKey = StringUtils.join(Arrays.asList(currentClazz, currentMethod, "if", timestamp.toString()), "#");
+        IfCodeBlock ifCodeBlock = (IfCodeBlock) LocalCache.computeIfAbsent(cacheKey, k -> {
+            IfCodeBlock block = new IfCodeBlock();
+            block.setTimestamp(timestamp);
+            return block;
+        });
+        CodeNode codeNode = new CodeNode();
+        codeNode.setCondition(condition);
+        codeNode.setIdentifier(identifier);
+        codeNode.setStatements(null);
+        ifCodeBlock.getCodeNodes().add(codeNode);
 
 
-        public String getCondition() {
-            return condition;
-        }
-
-        public void setCondition(String condition) {
-            this.condition = condition;
-        }
-
-        public String getContent() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
+        if (firstEnterIfTag) {
+            currentCodeNode.getCodeBlocks().add(ifCodeBlock);
+            firstEnterIfTag = false;
         }
     }
 
+    public List<CodeBlockNode> getCodeBlockNodes() {
+        return codeBlockNodes;
+    }
+
+    public void setCodeBlockNodes(List<CodeBlockNode> codeBlockNodes) {
+        this.codeBlockNodes = codeBlockNodes;
+    }
 }
