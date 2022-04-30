@@ -3,15 +3,12 @@
  */
 package me.mutai.codegraph.model.codeblock;
 
-import lombok.Data;
-
 /**
  * 循环代码模块，主要用于解析 for while do-while代码
  *
  * @author daixiao
  * @version v 0.1 2022/4/17
  */
-@Data
 public class LoopCodeBlockNode extends AbstractCodeBlockNode {
 
     /**
@@ -32,5 +29,29 @@ public class LoopCodeBlockNode extends AbstractCodeBlockNode {
     @Override
     public void set(AbstractCodeBlockNode node) {
         this.statement = node;
+    }
+
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public void setCondition(String condition) {
+        this.condition = condition;
+    }
+
+    public AbstractCodeBlockNode getStatement() {
+        return statement;
+    }
+
+    public void setStatement(AbstractCodeBlockNode statement) {
+        this.statement = statement;
     }
 }

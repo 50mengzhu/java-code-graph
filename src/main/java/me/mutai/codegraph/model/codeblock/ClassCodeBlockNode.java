@@ -3,15 +3,12 @@
  */
 package me.mutai.codegraph.model.codeblock;
 
-import lombok.Data;
-
 /**
  * 初始化类解析器
  *
  * @author daixiao
  * @version v 0.1 2022/4/17
  */
-@Data
 public class ClassCodeBlockNode extends AbstractCodeBlockNode {
 
     /**
@@ -19,4 +16,11 @@ public class ClassCodeBlockNode extends AbstractCodeBlockNode {
      */
     private String clazz;
 
+    public String getClazz() {
+        return clazz;
+    }
+
+    public void setClazz(String clazz) {
+        this.clazz = clazz;
+    }
 }

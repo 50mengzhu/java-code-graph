@@ -13,10 +13,20 @@ package me.mutai.codegraph.model.codeblock;
  */
 public abstract class AbstractCodeBlockNode extends TreeNode<AbstractCodeBlockNode> {
 
+    private String originStr;
+
     /**
      * 设置语句
      *
      * @param node
      */
     public void set(AbstractCodeBlockNode node) {}
+
+    public String getOriginStr() {
+        return originStr;
+    }
+
+    public void setOriginStr(String originStr) {
+        this.originStr = originStr;
+    }
 }
